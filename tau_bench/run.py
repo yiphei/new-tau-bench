@@ -17,7 +17,7 @@ from litellm import provider_list
 from tau_bench.envs.user import UserStrategy
 
 
-def run(config: RunConfig) -> List[EnvRunResult]:
+def run(config: RunConfig, custom_json_encoder = None) -> List[EnvRunResult]:
     assert config.env in ["retail", "airline"], "Only retail and airline envs are supported"
     assert config.model_provider in provider_list, "Invalid model provider"
     assert config.user_model_provider in provider_list, "Invalid user model provider"
@@ -25,6 +25,8 @@ def run(config: RunConfig) -> List[EnvRunResult]:
         assert config.agent_strategy in ["tool-calling", "act", "react", "few-shot"], "Invalid agent strategy"
     assert config.task_split in ["train", "test", "dev", "revised_test"], "Invalid task split"
     assert config.user_strategy in [item.value for item in UserStrategy], "Invalid user strategy"
+
+    json_encoder = custom_json_encoder or json.JSONEncoder
 
     random.seed(config.seed)
     time_str = datetime.now().strftime("%m%d%H%M%S")
@@ -114,7 +116,7 @@ def run(config: RunConfig) -> List[EnvRunResult]:
                     with open(ckpt_path, "r") as f:
                         data = json.load(f)
                 with open(ckpt_path, "w") as f:
-                    json.dump(data + [result.model_dump()], f, indent=2)
+                    json.dump(data + [result.model_dump()], f, cls=json_encoder, indent=2)
             return result
 
         with ThreadPoolExecutor(max_workers=config.max_concurrency) as executor:
@@ -124,7 +126,7 @@ def run(config: RunConfig) -> List[EnvRunResult]:
     display_metrics(results)
 
     with open(ckpt_path, "w") as f:
-        json.dump([result.model_dump() for result in results], f, indent=2)
+        json.dump([result.model_dump() for result in results], f, cls=json_encoder, indent=2)
         print(f"\n📄 Results saved to {ckpt_path}\n")
     return results
 
