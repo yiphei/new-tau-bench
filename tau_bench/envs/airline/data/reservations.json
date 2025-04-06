@@ -5508,7 +5508,7 @@
                 "origin": "PHX",
                 "destination": "DTW",
                 "flight_number": "HAT106",
-                "date": "2024-05-20",
+                "date": "2024-05-19",
                 "price": 135
             }
         ],
@@ -8532,7 +8532,7 @@
         "created_at": "2024-05-01T04:50:18",
         "total_baggages": 0,
         "nonfree_baggages": 0,
-        "insurance": "no"
+        "insurance": "yes"
     },
     "C4OC8K": {
         "reservation_id": "C4OC8K",
@@ -15875,7 +15875,7 @@
                 "origin": "MIA",
                 "destination": "LAX",
                 "flight_number": "HAT050",
-                "date": "2024-05-17",
+                "date": "2024-05-12",
                 "price": 1305
             },
             {
