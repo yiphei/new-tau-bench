@@ -9,6 +9,7 @@ import multiprocessing
 from typing import List, Dict, Any
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
 
 from tau_bench.envs import get_env
 from tau_bench.agents.base import Agent
@@ -58,70 +59,74 @@ def run(config: RunConfig, custom_json_encoder = None) -> List[EnvRunResult]:
         print(
             f"Running tasks {config.start_index} to {end_index} (checkpoint path: {ckpt_path})"
     )
-    for i in range(config.num_trials):
-        if config.task_ids and len(config.task_ids) > 0:
-            idxs = config.task_ids
-        else:
-            idxs = list(range(config.start_index, end_index))
-        if config.shuffle:
-            random.shuffle(idxs)
 
-        def _run(idx: int) -> EnvRunResult:
-            isolated_env = get_env(
-                config.env,
-                user_strategy=config.user_strategy,
-                user_model=config.user_model,
-                task_split=config.task_split,
-                user_provider=config.user_model_provider,
+    if config.task_ids and len(config.task_ids) > 0:
+        idxs = config.task_ids
+    else:
+        idxs = list(range(config.start_index, end_index))
+    if config.shuffle:
+        random.shuffle(idxs)
+
+    idxs = idxs * config.num_trials
+    idx_to_trial = defaultdict(lambda: -1)
+
+    def _run(idx: int) -> EnvRunResult:
+        isolated_env = get_env(
+            config.env,
+            user_strategy=config.user_strategy,
+            user_model=config.user_model,
+            task_split=config.task_split,
+            user_provider=config.user_model_provider,
+            task_index=idx,
+        )
+        trial = idx_to_trial[idx]
+
+        print(f"Running task {idx}")
+        try:
+            res = agent.solve(
+                env=isolated_env,
                 task_index=idx,
             )
-
-            print(f"Running task {idx}")
-            try:
-                res = agent.solve(
-                    env=isolated_env,
-                    task_index=idx,
-                )
-                result = EnvRunResult(
-                    task_id=idx,
-                    write_actions_diff=res.write_actions_diff,
-                    reward=res.reward,
-                    info=res.info,
-                    key_actions=res.key_actions,
-                    traj=res.messages,
-                    trial=i,
-                    raw_messages=res.raw_messages,
-                    node_turns=res.node_turns,
-                    oai_messages=res.oai_messages,
-                    anthropic_messages=res.anthropic_messages,
-                    actions_diff=res.actions_diff,
-                )
-            except Exception as e:
-                result = EnvRunResult(
-                    task_id=idx,
-                    reward=0.0,
-                    info={"error": str(e), "traceback": traceback.format_exc()},
-                    traj=[],
-                    trial=i,
-                )
-            print(
-                "✅" if result.reward == 1 else "❌",
-                f"task_id={idx}",
-                result.info,
+            result = EnvRunResult(
+                task_id=idx,
+                write_actions_diff=res.write_actions_diff,
+                reward=res.reward,
+                info=res.info,
+                key_actions=res.key_actions,
+                traj=res.messages,
+                trial=trial,
+                raw_messages=res.raw_messages,
+                node_turns=res.node_turns,
+                oai_messages=res.oai_messages,
+                anthropic_messages=res.anthropic_messages,
+                actions_diff=res.actions_diff,
             )
-            print("-----")
-            with lock:
-                data = []
-                if os.path.exists(ckpt_path):
-                    with open(ckpt_path, "r") as f:
-                        data = json.load(f)
-                with open(ckpt_path, "w") as f:
-                    json.dump(data + [result.model_dump()], f, cls=json_encoder, indent=2)
-            return result
+        except Exception as e:
+            result = EnvRunResult(
+                task_id=idx,
+                reward=0.0,
+                info={"error": str(e), "traceback": traceback.format_exc()},
+                traj=[],
+                trial=trial,
+            )
+        print(
+            "✅" if result.reward == 1 else "❌",
+            f"task_id={idx}",
+            result.info,
+        )
+        print("-----")
+        with lock:
+            data = []
+            if os.path.exists(ckpt_path):
+                with open(ckpt_path, "r") as f:
+                    data = json.load(f)
+            with open(ckpt_path, "w") as f:
+                json.dump(data + [result.model_dump()], f, cls=json_encoder, indent=2)
+        return result
 
-        with ThreadPoolExecutor(max_workers=config.max_concurrency) as executor:
-            res = list(executor.map(_run, idxs))
-            results.extend(res)
+    with ThreadPoolExecutor(max_workers=config.max_concurrency) as executor:
+        res = list(executor.map(_run, idxs))
+        results.extend(res)
 
     display_metrics(results)
 
