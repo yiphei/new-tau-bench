@@ -79,6 +79,7 @@ def run(config: RunConfig, custom_json_encoder = None) -> List[EnvRunResult]:
             user_provider=config.user_model_provider,
             task_index=idx,
         )
+        idx_to_trial[idx] += 1
         trial = idx_to_trial[idx]
 
         print(f"Running task {idx}")
