@@ -40,9 +40,16 @@ class RewardResult(BaseModel):
 
 class SolveResult(BaseModel):
     reward: float
+    write_actions_diff: Optional[Dict[str, Any]] = None
     messages: List[Dict[str, Any]]
     info: Dict[str, Any]
+    key_actions: Optional[List[Action]] = None
     total_cost: Optional[float] = None
+    raw_messages: Optional[List[Dict[str, Any]]] = None
+    node_turns: Optional[List[Dict]] = None
+    oai_messages: Optional[List[Dict[str, Any]]] = None
+    anthropic_messages: Optional[List[Dict[str, Any]]] = None
+    actions_diff: Optional[Dict[str, Any]] = None
 
 
 class EnvInfo(BaseModel):
@@ -67,9 +74,16 @@ class EnvResetResponse(BaseModel):
 class EnvRunResult(BaseModel):
     task_id: int
     reward: float
+    write_actions_diff: Optional[Dict[str, Any]] = None
+    actions_diff: Optional[Dict[str, Any]] = None
     info: Dict[str, Any]
+    key_actions: Optional[List[Action]] = None
     traj: List[Dict[str, Any]]
     trial: int
+    raw_messages: Optional[List[Dict[str, Any]]] = None
+    node_turns: Optional[List[Dict]] = None
+    oai_messages: Optional[List[Dict[str, Any]]] = None
+    anthropic_messages: Optional[List[Dict[str, Any]]] = None
 
 
 class RunConfig(BaseModel):

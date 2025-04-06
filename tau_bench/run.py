@@ -82,10 +82,17 @@ def run(config: RunConfig) -> List[EnvRunResult]:
                 )
                 result = EnvRunResult(
                     task_id=idx,
+                    write_actions_diff=res.write_actions_diff,
                     reward=res.reward,
                     info=res.info,
+                    key_actions=res.key_actions,
                     traj=res.messages,
                     trial=i,
+                    raw_messages=res.raw_messages,
+                    node_turns=res.node_turns,
+                    oai_messages=res.oai_messages,
+                    anthropic_messages=res.anthropic_messages,
+                    actions_diff=res.actions_diff,
                 )
             except Exception as e:
                 result = EnvRunResult(
