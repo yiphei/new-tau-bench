@@ -3,6 +3,7 @@
 import abc
 import enum
 from litellm import completion
+import logfire
 from typing import Optional, List, Dict, Any, Union
 
 
@@ -68,6 +69,13 @@ class LLMUserSimulationEnv(BaseUserSimulationEnv):
         if not message_content:
             raise ValueError("Failed to generate a non-empty user message")
 
+        logfire.info(
+            "Customer msg: {msg}",
+            msg=message_content,
+            messages=copied_messages,
+            completion=res,
+            _tags=["CustomerLLM"],
+        )
         return res, message
 
     def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
