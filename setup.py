@@ -20,5 +20,6 @@ setup(
         "litellm>=1.41.0",
         "pydantic>=2.11.2",
         "logfire>=3.12.0",
+        "pydantic-ai>=0.0.55"
     ],
 )
