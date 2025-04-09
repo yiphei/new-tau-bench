@@ -27,7 +27,9 @@ class UpdateReservationBaggages(Tool):
         if payment_id is not None:
             if payment_id not in users[reservation["user_id"]]["payment_methods"]:
                 return "Error: payment method not found"
-            payment_method = users[reservation["user_id"]]["payment_methods"][payment_id]
+            payment_method = users[reservation["user_id"]]["payment_methods"][
+                payment_id
+            ]
             if payment_method["source"] == "certificate":
                 return "Error: certificate cannot be used to update reservation"
             elif (
@@ -35,13 +37,12 @@ class UpdateReservationBaggages(Tool):
                 and payment_method["amount"] < total_price
             ):
                 return "Error: gift card balance is not enough"
-            
+
             if payment_method["source"] == "gift_card":
                 payment_method["amount"] -= total_price
 
         reservation["total_baggages"] = total_baggages
         reservation["nonfree_baggages"] = nonfree_baggages
-
 
         if total_price != 0:
             reservation["payment_history"].append(
