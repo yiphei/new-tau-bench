@@ -57,6 +57,25 @@ TASK_ID_TO_MAX_LENGTH = {
     26: 85,
 }
 
+def compute_cost_attributes(tree, parent_span):
+    llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
+    total_output_tookens = 0
+    total_input_tokens = 0
+    total_cost = 0
+    for llm_span in llm_spans:
+        response_data = json.loads(llm_span.attributes["response_data"])
+        request_data = json.loads(llm_span.attributes["request_data"])
+        output_tokens = response_data["usage"]["completion_tokens"]
+        input_tokens = response_data["usage"]["prompt_tokens"]
+        total_output_tookens += output_tokens
+        total_input_tokens += input_tokens
+        total_cost += compute_token_cost(
+            request_data["model"], input_tokens, output_tokens
+        )
+    parent_span.set_attribute("total_output_tookens", total_output_tookens)
+    parent_span.set_attribute("total_input_tokens", total_input_tokens)
+    parent_span.set_attribute("total_cost", total_cost)
+
 
 class CustomToolCallingAgent(ToolCallingAgent):
 
@@ -175,7 +194,7 @@ class CustomToolCallingAgent(ToolCallingAgent):
                         task_index,
                     )
 
-            self.calculate_cost(tree, span)
+            compute_cost_attributes(tree, span)
 
         turns = AE.TC.turns
         oai_messages = []
@@ -202,25 +221,6 @@ class CustomToolCallingAgent(ToolCallingAgent):
             oai_messages=oai_messages,
             actions_diff=actions_diff,
         )
-
-    def calculate_cost(self, tree, parent_span):
-        llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
-        total_output_tookens = 0
-        total_input_tokens = 0
-        total_cost = 0
-        for llm_span in llm_spans:
-            response_data = json.loads(llm_span.attributes["response_data"])
-            request_data = json.loads(llm_span.attributes["request_data"])
-            output_tokens = response_data["usage"]["completion_tokens"]
-            input_tokens = response_data["usage"]["prompt_tokens"]
-            total_output_tookens += output_tokens
-            total_input_tokens += input_tokens
-            total_cost += compute_token_cost(
-                request_data["model"], input_tokens, output_tokens
-            )
-        parent_span.set_attribute("total_output_tookens", total_output_tookens)
-        parent_span.set_attribute("total_input_tokens", total_input_tokens)
-        parent_span.set_attribute("total_cost", total_cost)
 
     def calculate_span_attributes(
         self,
