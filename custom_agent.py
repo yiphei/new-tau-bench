@@ -15,6 +15,7 @@ from cashier.model.model_completion import Model
 from cashier.model.types import MessageFormat, ModelAPI
 from tau_benchmark.schema.request_graph_schema import AIRLINE_REQUEST_GRAPH
 from tau_benchmark.util import BLACKLISTED_TOOLS, TURN_TYPES
+import context_subtree
 
 WRITE_TOOL_NAMES = [
     "update_reservation_baggages",
@@ -107,7 +108,7 @@ class CustomToolCallingAgent(ToolCallingAgent):
         )
         reward = 0.0
 
-        with logfire.span(
+        with context_subtree() as tree, logfire.span(
             "Task_id {task_index}, ass_model: {ass_model}, user_model: {user_model}",
             task_index=task_index,
             ass_model=self.model,
@@ -170,6 +171,15 @@ class CustomToolCallingAgent(ToolCallingAgent):
                     user_model,
                     task_index,
                 )
+                llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
+                total_output_tookens = 0
+                total_input_tokens = 0
+                for span in llm_spans:
+                    total_output_tookens += span.attributes['response_data']['usage']['completion_tokens']
+                    total_input_tokens += span.attributes['response_data']['usage']['prompt_tokens']
+                span.set_attribute("total_output_tookens", total_output_tookens)
+                span.set_attribute("total_input_tokens", total_input_tokens)
+
 
         turns = AE.TC.turns
         oai_messages = []
