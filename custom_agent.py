@@ -118,7 +118,7 @@ class CustomToolCallingAgent(ToolCallingAgent):
             obs = env_reset_res.observation
             info = env_reset_res.info.model_dump()
 
-            max_length = TASK_ID_TO_MAX_LENGTH.get(task_index, max_num_steps)
+            max_length = 10
             AE = AgentExecutor(
                 False,
                 True,
@@ -171,14 +171,16 @@ class CustomToolCallingAgent(ToolCallingAgent):
                     user_model,
                     task_index,
                 )
-                llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
-                total_output_tookens = 0
-                total_input_tokens = 0
-                for span in llm_spans:
-                    total_output_tookens += span.attributes['response_data']['usage']['completion_tokens']
-                    total_input_tokens += span.attributes['response_data']['usage']['prompt_tokens']
-                span.set_attribute("total_output_tookens", total_output_tookens)
-                span.set_attribute("total_input_tokens", total_input_tokens)
+        llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
+        total_output_tookens = 0
+        total_input_tokens = 0
+        import json
+        for llm_span in llm_spans:
+            response_data = json.loads(llm_span.attributes['response_data'])
+            total_output_tookens += response_data['usage']['completion_tokens']
+            total_input_tokens += response_data['usage']['prompt_tokens']
+        span.set_attribute("total_output_tookens", total_output_tookens)
+        span.set_attribute("total_input_tokens", total_input_tokens)
 
 
         turns = AE.TC.turns
