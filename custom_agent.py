@@ -15,7 +15,7 @@ from cashier.model.model_completion import Model
 from cashier.model.types import MessageFormat, ModelAPI
 from tau_benchmark.schema.request_graph_schema import AIRLINE_REQUEST_GRAPH
 from tau_benchmark.util import BLACKLISTED_TOOLS, TURN_TYPES
-import context_subtree
+from pydantic_evals.otel._context_in_memory_span_exporter import context_subtree
 
 WRITE_TOOL_NAMES = [
     "update_reservation_baggages",
