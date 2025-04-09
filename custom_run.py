@@ -9,7 +9,7 @@ from tau_bench.types import RunConfig
 from cashier.model.model_client import ModelClient
 from cashier.model.model_util import CustomJSONEncoder
 from cashier.model.types import get_default_model_provider_for_model_name
-from tau_benchmark.custom_agent import CustomToolCallingAgent
+from custom_agent import CustomToolCallingAgent
 
 RunConfig.model_rebuild()
 
