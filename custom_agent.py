@@ -210,10 +210,12 @@ class CustomToolCallingAgent(ToolCallingAgent):
         for llm_span in llm_spans:
             response_data = json.loads(llm_span.attributes["response_data"])
             request_data = json.loads(llm_span.attributes["request_data"])
-            total_output_tookens += response_data["usage"]["completion_tokens"]
-            total_input_tokens += response_data["usage"]["prompt_tokens"]
+            output_tokens = response_data["usage"]["completion_tokens"]
+            input_tokens = response_data["usage"]["prompt_tokens"]
+            total_output_tookens += output_tokens
+            total_input_tokens += input_tokens
             total_cost += self.get_cost_per_model(
-                request_data["model"], total_input_tokens, total_output_tookens
+                request_data["model"], input_tokens, output_tokens
             )
         parent_span.set_attribute("total_output_tookens", total_output_tookens)
         parent_span.set_attribute("total_input_tokens", total_input_tokens)
