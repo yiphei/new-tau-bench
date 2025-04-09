@@ -53,6 +53,7 @@ class Env(object):
         user_model: str,
         user_provider: Optional[str] = None,
         task_index: Optional[int] = None,
+        execute_actions: bool = True,
     ) -> None:
         super().__init__()
         self.data_load_func = data_load_func
@@ -74,6 +75,7 @@ class Env(object):
             user_strategy=user_strategy, model=user_model, provider=user_provider
         )
         self.actions: List[Action] = []
+        self.execute_actions = execute_actions
 
     def reset(self, task_index: Optional[int] = None) -> EnvResetResponse:
         if task_index is None:
@@ -97,7 +99,7 @@ class Env(object):
             observation = self.user.step(action.kwargs["content"])
             info.source = "user"
             done = "###STOP###" in observation
-        elif action.name in self.tools_map:
+        elif action.name in self.tools_map and self.execute_actions:
             try:
                 observation = self.tools_map[action.name].invoke(
                     data=self.data, **action.kwargs
