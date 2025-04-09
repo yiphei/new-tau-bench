@@ -108,79 +108,81 @@ class CustomToolCallingAgent(ToolCallingAgent):
         )
         reward = 0.0
 
-        with context_subtree() as tree, logfire.span(
+        with logfire.span(
             "Task_id {task_index}, ass_model: {ass_model}, user_model: {user_model}",
             task_index=task_index,
             ass_model=self.model,
             user_model=user_model,
         ) as span:
-            env_reset_res = env.reset(task_index=task_index)
-            obs = env_reset_res.observation
-            info = env_reset_res.info.model_dump()
+            with context_subtree() as tree:
+                env_reset_res = env.reset(task_index=task_index)
+                obs = env_reset_res.observation
+                info = env_reset_res.info.model_dump()
 
-            max_length = 10
-            AE = AgentExecutor(
-                False,
-                True,
-                AIRLINE_REQUEST_GRAPH,
-            )
-            AE.graph.benchmark_tool_registry = tool_fn_registry
-            AE.graph.blacklist_tool_names = BLACKLISTED_TOOLS
-
-            AE.add_user_turn(obs)
-            full_message_dicts = AE.TC.model_api_format_to_message_manager[
-                (ModelAPI.OPENAI, MessageFormat.MANY_SYSTEM_LAST_NODE_PROMPT)
-            ].full_message_dicts
-            try:
-                for i in range(max_length):
-                    model_completion = self.get_model_completion(AE)
-                    action = message_to_action(model_completion)
-                    AE.add_assistant_turn(model_completion)
-
-                    need_user_input = AE.need_user_input
-                    env_response = env.step(
-                        action,
-                        can_do_user_step=need_user_input,
-                        can_do_tool_execution=False,
-                    )
-                    reward = env_response.reward
-                    info = {**info, **env_response.info.model_dump()}
-
-                    if need_user_input:
-                        AE.add_user_turn(env_response.observation)
-                    else:
-                        AE.custom_benchmark_check()
-
-                    if env_response.done:
-                        break
-                logfire.info("DONE with reward {reward}", reward=reward)
-                if i == max_length - 1:
-                    logfire.error("Max length reached")
-            except Exception as e:
-                logfire.exception(f"Exception: {e}")
-                raise e
-            finally:
-                write_actions_diff, actions_diff = self.calculate_span_attributes(
-                    span,
-                    expected_task_actions,
-                    expected_write_task_actions,
-                    actual_task_actions,
-                    actual_write_task_actions,
-                    full_message_dicts,
-                    reward,
-                    user_model,
-                    task_index,
+                max_length = TASK_ID_TO_MAX_LENGTH.get(task_index, max_num_steps)
+                AE = AgentExecutor(
+                    False,
+                    True,
+                    AIRLINE_REQUEST_GRAPH,
                 )
-        llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
-        total_output_tookens = 0
-        total_input_tokens = 0
-        import json
-        for llm_span in llm_spans:
-            response_data = json.loads(llm_span.attributes['response_data'])
-            total_output_tookens += response_data['usage']['completion_tokens']
-            total_input_tokens += response_data['usage']['prompt_tokens']
-        span.set_attribute("total_output_tookens", total_output_tookens)
-        span.set_attribute("total_input_tokens", total_input_tokens)
+                AE.graph.benchmark_tool_registry = tool_fn_registry
+                AE.graph.blacklist_tool_names = BLACKLISTED_TOOLS
+
+                AE.add_user_turn(obs)
+                full_message_dicts = AE.TC.model_api_format_to_message_manager[
+                    (ModelAPI.OPENAI, MessageFormat.MANY_SYSTEM_LAST_NODE_PROMPT)
+                ].full_message_dicts
+                try:
+                    for i in range(max_length):
+                        model_completion = self.get_model_completion(AE)
+                        action = message_to_action(model_completion)
+                        AE.add_assistant_turn(model_completion)
+
+                        need_user_input = AE.need_user_input
+                        env_response = env.step(
+                            action,
+                            can_do_user_step=need_user_input,
+                            can_do_tool_execution=False,
+                        )
+                        reward = env_response.reward
+                        info = {**info, **env_response.info.model_dump()}
+
+                        if need_user_input:
+                            AE.add_user_turn(env_response.observation)
+                        else:
+                            AE.custom_benchmark_check()
+
+                        if env_response.done:
+                            break
+                    logfire.info("DONE with reward {reward}", reward=reward)
+                    if i == max_length - 1:
+                        logfire.error("Max length reached")
+                except Exception as e:
+                    logfire.exception(f"Exception: {e}")
+                    raise e
+                finally:
+                    write_actions_diff, actions_diff = self.calculate_span_attributes(
+                        span,
+                        expected_task_actions,
+                        expected_write_task_actions,
+                        actual_task_actions,
+                        actual_write_task_actions,
+                        full_message_dicts,
+                        reward,
+                        user_model,
+                        task_index,
+                    )
+
+            llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
+            total_output_tookens = 0
+            total_input_tokens = 0
+            import json
+            for llm_span in llm_spans:
+                response_data = json.loads(llm_span.attributes['response_data'])
+                total_output_tookens += response_data['usage']['completion_tokens']
+                total_input_tokens += response_data['usage']['prompt_tokens']
+            span.set_attribute("total_output_tookens", total_output_tookens)
+            span.set_attribute("total_input_tokens", total_input_tokens)
 
 
         turns = AE.TC.turns
