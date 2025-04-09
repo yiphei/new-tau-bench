@@ -57,6 +57,7 @@ TASK_ID_TO_MAX_LENGTH = {
     26: 85,
 }
 
+
 def compute_token_attributes(llm_spans):
     total_output_tokens = 0
     total_input_tokens = 0
@@ -74,16 +75,20 @@ def compute_token_attributes(llm_spans):
 
     return total_output_tokens, total_input_tokens, total_cost
 
+
 def compute_cost_attributes(tree, parent_span):
     agent_llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
-    total_output_tokens, total_input_tokens, total_cost = compute_token_attributes(agent_llm_spans)
+    total_output_tokens, total_input_tokens, total_cost = compute_token_attributes(
+        agent_llm_spans
+    )
     parent_span.set_attribute("total_output_tokens", total_output_tokens)
     parent_span.set_attribute("total_input_tokens", total_input_tokens)
     parent_span.set_attribute("total_cost", total_cost)
 
-
     user_llm_spans = tree.find({"has_attributes": {"logfire.tags": ("CustomerLLM",)}})
-    total_output_tokens, total_input_tokens, total_cost = compute_token_attributes(user_llm_spans)
+    total_output_tokens, total_input_tokens, total_cost = compute_token_attributes(
+        user_llm_spans
+    )
     parent_span.set_attribute("USER_total_output_tokens", total_output_tokens)
     parent_span.set_attribute("USER_total_input_tokens", total_input_tokens)
     parent_span.set_attribute("USER_total_cost", total_cost)
