@@ -21,31 +21,27 @@ class UpdateReservationBaggages(Tool):
 
         total_price = 50 * max(0, nonfree_baggages - reservation["nonfree_baggages"])
 
-        # TODO: this needs to be handled differently. I shouldnt fake an id here. The rest of the logic should just handle a null payment_id.
-        if payment_id is None:
-            payment_id = next(
-                payment_id
-                for payment_id in users[reservation["user_id"]][
-                    "payment_methods"
-                ].keys()
-                if not payment_id.startswith("certificate_")
-            )
+        if payment_id is None and nonfree_baggages > 0:
+            return "Error: payment method is required"
 
-        if payment_id not in users[reservation["user_id"]]["payment_methods"]:
-            return "Error: payment method not found"
-        payment_method = users[reservation["user_id"]]["payment_methods"][payment_id]
-        if payment_method["source"] == "certificate":
-            return "Error: certificate cannot be used to update reservation"
-        elif (
-            payment_method["source"] == "gift_card"
-            and payment_method["amount"] < total_price
-        ):
-            return "Error: gift card balance is not enough"
+        if payment_id is not None:
+            if payment_id not in users[reservation["user_id"]]["payment_methods"]:
+                return "Error: payment method not found"
+            payment_method = users[reservation["user_id"]]["payment_methods"][payment_id]
+            if payment_method["source"] == "certificate":
+                return "Error: certificate cannot be used to update reservation"
+            elif (
+                payment_method["source"] == "gift_card"
+                and payment_method["amount"] < total_price
+            ):
+                return "Error: gift card balance is not enough"
+            
+            if payment_method["source"] == "gift_card":
+                payment_method["amount"] -= total_price
 
         reservation["total_baggages"] = total_baggages
         reservation["nonfree_baggages"] = nonfree_baggages
-        if payment_method["source"] == "gift_card":
-            payment_method["amount"] -= total_price
+
 
         if total_price != 0:
             reservation["payment_history"].append(
