@@ -97,13 +97,16 @@ class Env(object):
             observation = self.user.step(action.kwargs["content"])
             info.source = "user"
             done = "###STOP###" in observation
-        elif action.name in self.tools_map and can_do_tool_execution:
-            try:
-                observation = self.tools_map[action.name].invoke(
-                    data=self.data, **action.kwargs
-                )
-            except Exception as e:
-                observation = f"Error: {e}"
+        elif action.name in self.tools_map:
+            if can_do_tool_execution:
+                try:
+                    observation = self.tools_map[action.name].invoke(
+                        data=self.data, **action.kwargs
+                    )
+                except Exception as e:
+                    observation = f"Error: {e}"
+            else:
+                observation = f"Unknown action {action.name}"
             info.source = action.name
             if action.name in self.terminate_tools:
                 done = True
