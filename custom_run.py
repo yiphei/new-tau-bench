@@ -35,7 +35,7 @@ def run_with_defaults(args) -> None:
         agent_strategy=None,
         custom_agent=CustomToolCallingAgent,
         task_split="revised_test",
-        log_dir="tau_benchmark/results",
+        log_dir="results",
         start_index=args.start_index,
         end_index=args.end_index,
         task_ids=args.task_ids,
