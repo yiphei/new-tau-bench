@@ -87,17 +87,17 @@ class Env(object):
             observation=initial_observation, info=EnvInfo(task=self.task, source="user")
         )
 
-    def step(self, action: Action) -> EnvResponse:
+    def step(self, action: Action, can_do_user_step: bool = True, can_do_tool_execution: bool = True) -> EnvResponse:
         self.actions.append(action)
 
         info = EnvInfo(task=self.task)
         reward = 0
         done = False
-        if action.name == RESPOND_ACTION_NAME:
+        if action.name == RESPOND_ACTION_NAME and can_do_user_step:
             observation = self.user.step(action.kwargs["content"])
             info.source = "user"
             done = "###STOP###" in observation
-        elif action.name in self.tools_map:
+        elif action.name in self.tools_map and can_do_tool_execution:
             try:
                 observation = self.tools_map[action.name].invoke(
                     data=self.data, **action.kwargs
