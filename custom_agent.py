@@ -176,7 +176,6 @@ class CustomToolCallingAgent(ToolCallingAgent):
 
             self.calculate_cost(tree, span)
 
-
         turns = AE.TC.turns
         oai_messages = []
         raw_messages = []
@@ -202,39 +201,42 @@ class CustomToolCallingAgent(ToolCallingAgent):
             oai_messages=oai_messages,
             actions_diff=actions_diff,
         )
-    
+
     def calculate_cost(self, tree, parent_span):
         llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
         total_output_tookens = 0
         total_input_tokens = 0
         total_cost = 0
         for llm_span in llm_spans:
-            response_data = json.loads(llm_span.attributes['response_data'])
-            request_data = json.loads(llm_span.attributes['request_data'])
-            total_output_tookens += response_data['usage']['completion_tokens']
-            total_input_tokens += response_data['usage']['prompt_tokens']
-            total_cost += self.get_cost_per_model(request_data['model'], total_input_tokens, total_output_tookens)
+            response_data = json.loads(llm_span.attributes["response_data"])
+            request_data = json.loads(llm_span.attributes["request_data"])
+            total_output_tookens += response_data["usage"]["completion_tokens"]
+            total_input_tokens += response_data["usage"]["prompt_tokens"]
+            total_cost += self.get_cost_per_model(
+                request_data["model"], total_input_tokens, total_output_tookens
+            )
         parent_span.set_attribute("total_output_tookens", total_output_tookens)
         parent_span.set_attribute("total_input_tokens", total_input_tokens)
         parent_span.set_attribute("total_cost", total_cost)
 
     def get_cost_per_model(self, model, input_tokens, output_tokens):
         model_to_input_cost = {
-            'google/gemini-2.0-flash-001': 0.1,
-            'anthropic/claude-3.7-sonnet': 3,
-            'openai/gpt-4o-2024-11-20': 2.5,
-            'openai/o3-mini': 1.1
+            "google/gemini-2.0-flash-001": 0.1,
+            "anthropic/claude-3.7-sonnet": 3,
+            "openai/gpt-4o-2024-11-20": 2.5,
+            "openai/o3-mini": 1.1,
         }
 
         model_to_output_cost = {
-            'google/gemini-2.0-flash-001': 0.4,
-            'anthropic/claude-3.7-sonnet': 15,
-            'openai/gpt-4o-2024-11-20': 10,
-            'openai/o3-mini': 4.4
+            "google/gemini-2.0-flash-001": 0.4,
+            "anthropic/claude-3.7-sonnet": 15,
+            "openai/gpt-4o-2024-11-20": 10,
+            "openai/o3-mini": 4.4,
         }
 
-        return model_to_input_cost[model] * (input_tokens/1000000) + model_to_output_cost[model] * (output_tokens/1000000)
-        
+        return model_to_input_cost[model] * (
+            input_tokens / 1000000
+        ) + model_to_output_cost[model] * (output_tokens / 1000000)
 
     def calculate_span_attributes(
         self,
