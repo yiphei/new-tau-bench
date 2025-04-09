@@ -87,7 +87,12 @@ class Env(object):
             observation=initial_observation, info=EnvInfo(task=self.task, source="user")
         )
 
-    def step(self, action: Action, can_do_user_step: bool = True, can_do_tool_execution: bool = True) -> EnvResponse:
+    def step(
+        self,
+        action: Action,
+        can_do_user_step: bool = True,
+        can_do_tool_execution: bool = True,
+    ) -> EnvResponse:
         self.actions.append(action)
 
         info = EnvInfo(task=self.task)
@@ -163,5 +168,5 @@ class Env(object):
                     r_outputs = 0.0
                     reward = 0.0
             info = RewardOutputInfo(r_outputs=r_outputs, outputs=outputs)
-            
+
         return RewardResult(reward=reward, info=info, actions=actions)
