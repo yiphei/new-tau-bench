@@ -12,6 +12,9 @@ from cashier.model.types import get_default_model_provider_for_model_name
 from custom_agent import CustomToolCallingAgent
 
 RunConfig.model_rebuild()
+import dotenv
+
+dotenv.load_dotenv()
 
 
 def run_with_defaults(args) -> None:
