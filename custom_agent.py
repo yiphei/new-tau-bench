@@ -58,7 +58,7 @@ TASK_ID_TO_MAX_LENGTH = {
 }
 
 
-def compute_token_attributes(llm_spans):
+def compute_token_attributes_for_agent(llm_spans):
     total_output_tokens = 0
     total_input_tokens = 0
     total_cost = 0
@@ -76,9 +76,26 @@ def compute_token_attributes(llm_spans):
     return total_output_tokens, total_input_tokens, total_cost
 
 
+def compute_token_attributes_for_user(llm_spans):
+    total_output_tokens = 0
+    total_input_tokens = 0
+    total_cost = 0
+    for llm_span in llm_spans:
+        completion = json.loads(llm_span.attributes["completion"])
+        output_tokens = completion["usage"]["completion_tokens"]
+        input_tokens = completion["usage"]["prompt_tokens"]
+        total_output_tokens += output_tokens
+        total_input_tokens += input_tokens
+        total_cost += compute_token_cost(
+            completion["model"], input_tokens, output_tokens
+        )
+
+    return total_output_tokens, total_input_tokens, total_cost
+
+
 def compute_cost_attributes(tree, parent_span):
     agent_llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
-    total_output_tokens, total_input_tokens, total_cost = compute_token_attributes(
+    total_output_tokens, total_input_tokens, total_cost = compute_token_attributes_for_agent(
         agent_llm_spans
     )
     parent_span.set_attribute("total_output_tokens", total_output_tokens)
@@ -86,7 +103,7 @@ def compute_cost_attributes(tree, parent_span):
     parent_span.set_attribute("total_cost", total_cost)
 
     user_llm_spans = tree.find({"has_attributes": {"logfire.tags": ("CustomerLLM",)}})
-    total_output_tokens, total_input_tokens, total_cost = compute_token_attributes(
+    total_output_tokens, total_input_tokens, total_cost = compute_token_attributes_for_user(
         user_llm_spans
     )
     parent_span.set_attribute("USER_total_output_tokens", total_output_tokens)
