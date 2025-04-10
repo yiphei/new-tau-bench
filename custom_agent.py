@@ -145,7 +145,6 @@ class CustomToolCallingAgent(ToolCallingAgent):
         self, env: Env, task_index: Optional[int] = None, max_num_steps: int = 160
     ) -> SolveResult:
         user_model = env.user.model
-        total_cost = 0.0
         expected_task_actions = env.task.actions
         expected_task_action_names = [action.name for action in expected_task_actions]
         expected_write_task_actions = [
@@ -175,7 +174,7 @@ class CustomToolCallingAgent(ToolCallingAgent):
                 obs = env_reset_res.observation
                 info = env_reset_res.info.model_dump()
 
-                max_length = TASK_ID_TO_MAX_LENGTH.get(task_index, max_num_steps)
+                max_length = 4
                 AE = AgentExecutor(
                     False,
                     True,
