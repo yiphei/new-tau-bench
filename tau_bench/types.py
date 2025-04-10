@@ -50,8 +50,8 @@ class SolveResult(BaseModel):
     oai_messages: Optional[List[Dict[str, Any]]] = None
     anthropic_messages: Optional[List[Dict[str, Any]]] = None
     actions_diff: Optional[Dict[str, Any]] = None
-    total_cost: int
-    total_user_cost: int
+    total_cost: Optional[int] = None
+    total_user_cost: Optional[int] = None
 
 
 class EnvInfo(BaseModel):
@@ -86,8 +86,8 @@ class EnvRunResult(BaseModel):
     node_turns: Optional[List[Dict]] = None
     oai_messages: Optional[List[Dict[str, Any]]] = None
     anthropic_messages: Optional[List[Dict[str, Any]]] = None
-    total_cost: int
-    total_user_cost: int
+    total_cost: Optional[int] = None
+    total_user_cost: Optional[int] = None
 
 
 class RunConfig(BaseModel):
