@@ -106,9 +106,9 @@ def compute_cost_attributes(tree, parent_span):
     total_output_tokens, total_input_tokens, total_cost = compute_token_attributes_for_user(
         user_llm_spans
     )
-    parent_span.set_attribute("USER_total_output_tokens", total_output_tokens)
-    parent_span.set_attribute("USER_total_input_tokens", total_input_tokens)
-    parent_span.set_attribute("USER_total_cost", total_cost)
+    parent_span.set_attribute("total_USER_output_tokens", total_output_tokens)
+    parent_span.set_attribute("total_USER_input_tokens", total_input_tokens)
+    parent_span.set_attribute("total_USER_cost", total_cost)
 
 
 class CustomToolCallingAgent(ToolCallingAgent):
