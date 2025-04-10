@@ -248,7 +248,6 @@ class CustomToolCallingAgent(ToolCallingAgent):
             messages=AE.TC.model_api_format_to_message_manager[
                 (ModelAPI.OPENAI, MessageFormat.MANY_SYSTEM_LAST_NODE_PROMPT)
             ].conversation_dicts,
-            total_cost=total_cost,
             raw_messages=raw_messages,
             node_turns=[turn_dump(node_turn) for node_turn in AE.TC.turns],
             anthropic_messages=anthropic_messages,
