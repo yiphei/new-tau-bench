@@ -1,6 +1,8 @@
 import argparse
 
 import logfire
+import redis
+import os
 from tau_bench.agents.tool_calling_agent import *  # noqa: F403, F401
 from tau_bench.envs.base import *  # noqa: F403, F401
 from tau_bench.run import run
@@ -25,6 +27,33 @@ def run_with_defaults(args) -> None:
     logfire.configure(scrubbing=False, console=False)
     model_provider = get_default_model_provider_for_model_name(args.model)
     ModelClient.initialize()
+
+    # --- Clear Redis Data --- 
+    try:
+        redis_host = os.getenv("REDIS_HOST", "localhost")
+        redis_port = int(os.getenv("REDIS_PORT", 6379))
+        r = redis.Redis(host=redis_host, port=redis_port, decode_responses=True, socket_connect_timeout=1)
+        r.ping()
+        print(f"Connected to Redis at {redis_host}:{redis_port} to clear old data.")
+        # Delete keys matching the pattern 'conversation:*'
+        keys_to_delete = []
+        cursor = '0'
+        while cursor != 0:
+            cursor, keys = r.scan(cursor=cursor, match="conversation:*", count=500)
+            keys_to_delete.extend(keys)
+        
+        if keys_to_delete:
+            print(f"Deleting {len(keys_to_delete)} old conversation keys from Redis...")
+            r.delete(*keys_to_delete)
+        else:
+            print("No old conversation keys found in Redis.")
+        r.close()
+    except redis.exceptions.ConnectionError as e:
+        print(f"Could not connect to Redis to clear data: {e}. Old data might persist in visualizer.")
+    except Exception as e:
+        print(f"An error occurred while clearing Redis data: {e}")
+    # --- End Clear Redis Data ---
+
     config = RunConfig(
         model_provider=str(model_provider).lower(),
         user_model_provider="openrouter",

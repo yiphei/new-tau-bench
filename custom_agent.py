@@ -4,6 +4,7 @@ import json
 from typing import Optional
 
 import logfire
+import redis
 from deepdiff import DeepDiff
 from tau_bench.agents.tool_calling_agent import ToolCallingAgent
 from tau_bench.envs.base import Env
@@ -18,6 +19,13 @@ from tau_benchmark.util import BLACKLISTED_TOOLS, TURN_TYPES
 from pydantic_evals.otel._context_in_memory_span_exporter import context_subtree
 import json
 from cashier.model.cost import compute_token_cost
+import os
+
+# --- Redis Configuration ---
+# Use environment variables or defaults
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+# --- End Redis Configuration ---
 
 WRITE_TOOL_NAMES = [
     "update_reservation_baggages",
@@ -112,6 +120,36 @@ def compute_cost_attributes(tree, parent_span):
     return total_cost, total_user_cost
 
 
+# --- Redis Helper ---
+def push_to_redis(r: redis.Redis, task_id: int, role: str, content: Optional[str] = None, tool_calls: Optional[list] = None, tool_results: Optional[dict] = None, tool_name: Optional[str] = None):
+    """Pushes a message dictionary to the Redis list for a given task."""
+    if r is None:
+        print(f"Skipping Redis push: No connection.")
+        return
+    try:
+        message = {"role": role}
+        if content:
+            message["content"] = content
+        if tool_calls:
+            # Ensure tool calls are serializable (e.g., convert pydantic models)
+            message["tool_calls"] = [tc if isinstance(tc, dict) else tc.model_dump() for tc in tool_calls]
+        if tool_results:
+             message["tool_results"] = tool_results # Assuming results are already serializable
+             if tool_name:
+                 message["tool_name"] = tool_name
+
+        redis_key = f"conversation:{task_id}"
+        r.rpush(redis_key, json.dumps(message))
+        # Optional: Trim the list to prevent unbounded growth
+        # r.ltrim(redis_key, -1000, -1) # Keep only the latest 1000 messages
+    except redis.exceptions.ConnectionError as e:
+        print(f"Redis connection error during push: {e}")
+    except Exception as e:
+        # Log other errors (e.g., serialization issues)
+        print(f"Error pushing message to Redis for task {task_id}: {e}")
+# --- End Redis Helper ---
+
+
 class CustomToolCallingAgent(ToolCallingAgent):
 
     def build_tool_fn_registry(
@@ -144,6 +182,17 @@ class CustomToolCallingAgent(ToolCallingAgent):
     def solve(
         self, env: Env, task_index: Optional[int] = None, max_num_steps: int = 160
     ) -> SolveResult:
+        # --- Redis Connection per solve ---
+        redis_conn = None
+        try:
+            redis_conn = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=False, socket_connect_timeout=1) # decode_responses=False for json bytes
+            redis_conn.ping()
+            print(f"Task {task_index}: Connected to Redis.")
+        except redis.exceptions.ConnectionError as e:
+            print(f"Task {task_index}: Failed to connect to Redis: {e}. Visualization will not be updated.")
+            redis_conn = None
+        # --- End Redis Connection ---
+
         user_model = env.user.model
         expected_task_actions = env.task.actions
         expected_task_action_names = [action.name for action in expected_task_actions]
@@ -184,6 +233,10 @@ class CustomToolCallingAgent(ToolCallingAgent):
                 AE.graph.blacklist_tool_names = BLACKLISTED_TOOLS
 
                 AE.add_user_turn(obs)
+                # --- Push initial user message ---
+                push_to_redis(redis_conn, task_index, "user", content=obs)
+                # ---
+
                 full_message_dicts = AE.TC.model_api_format_to_message_manager[
                     (ModelAPI.OPENAI, MessageFormat.MANY_SYSTEM_LAST_NODE_PROMPT)
                 ].full_message_dicts
@@ -192,6 +245,11 @@ class CustomToolCallingAgent(ToolCallingAgent):
                         model_completion = self.get_model_completion(AE)
                         action = message_to_action(model_completion)
                         AE.add_assistant_turn(model_completion)
+                        # --- Push assistant message/tool_calls ---
+                        assistant_content = model_completion.get_or_stream_message()
+                        assistant_tool_calls = [fn_call for fn_call in model_completion.get_or_stream_fn_calls()]
+                        push_to_redis(redis_conn, task_index, "assistant", content=assistant_content, tool_calls=assistant_tool_calls if assistant_tool_calls else None)
+                        # ---
 
                         need_user_input = AE.need_user_input
                         env_response = env.step(
@@ -204,8 +262,14 @@ class CustomToolCallingAgent(ToolCallingAgent):
 
                         if need_user_input:
                             AE.add_user_turn(env_response.observation)
+                            # --- Push next user message ---
+                            push_to_redis(redis_conn, task_index, "user", content=env_response.observation)
+                            # ---
                         else:
                             AE.custom_benchmark_check()
+                            # TODO: Optionally push tool execution results here if available
+                            # This might require modifying the env or wrapper to capture results explicitly.
+                            # For now, we only show the assistant's *request* for tool calls.
 
                         if env_response.done:
                             break
@@ -359,10 +423,14 @@ def message_to_action(model_completion) -> Action:
     for fn_call in model_completion.get_or_stream_fn_calls():
         fn_calls.append(fn_call)
     if fn_calls:
+        # Ensure args are serializable if they are Pydantic models
+        serializable_args = fn_calls[0].args
+        if hasattr(serializable_args, 'model_dump'):
+             serializable_args = serializable_args.model_dump()
         return Action(
             name=fn_calls[0].name,
-            kwargs=fn_calls[0].args,
-            fn_calls=fn_calls,
+            kwargs=serializable_args, # Use potentially serialized args
+            fn_calls=fn_calls, # Keep original fn_calls for internal use
         )
     else:
         return Action(
