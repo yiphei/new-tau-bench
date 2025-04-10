@@ -103,12 +103,13 @@ def compute_cost_attributes(tree, parent_span):
     parent_span.set_attribute("total_cost", total_cost)
 
     user_llm_spans = tree.find({"has_attributes": {"logfire.tags": ("CustomerLLM",)}})
-    total_output_tokens, total_input_tokens, total_cost = (
+    total_output_tokens, total_input_tokens, total_user_cost = (
         compute_token_attributes_for_user(user_llm_spans)
     )
     parent_span.set_attribute("total_USER_output_tokens", total_output_tokens)
     parent_span.set_attribute("total_USER_input_tokens", total_input_tokens)
-    parent_span.set_attribute("total_USER_cost", total_cost)
+    parent_span.set_attribute("total_USER_cost", total_user_cost)
+    return total_cost, total_user_cost
 
 
 class CustomToolCallingAgent(ToolCallingAgent):
@@ -229,7 +230,7 @@ class CustomToolCallingAgent(ToolCallingAgent):
                         task_index,
                     )
 
-            compute_cost_attributes(tree, span)
+            total_cost, total_user_cost = compute_cost_attributes(tree, span)
 
         turns = AE.TC.turns
         oai_messages = []
@@ -255,6 +256,8 @@ class CustomToolCallingAgent(ToolCallingAgent):
             anthropic_messages=anthropic_messages,
             oai_messages=oai_messages,
             actions_diff=actions_diff,
+            total_cost = total_cost,
+            total_user_cost=total_user_cost,
         )
 
     def calculate_span_attributes(
