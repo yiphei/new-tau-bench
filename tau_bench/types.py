@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, model_validator
 from typing import List, Dict, Any, Optional, Union, Type, TYPE_CHECKING
+
 if TYPE_CHECKING:
     from tau_bench.agents.tool_calling_agent import ToolCallingAgent
 
@@ -44,12 +45,13 @@ class SolveResult(BaseModel):
     messages: List[Dict[str, Any]]
     info: Dict[str, Any]
     key_actions: Optional[List[Action]] = None
-    total_cost: Optional[float] = None
     raw_messages: Optional[List[Dict[str, Any]]] = None
     node_turns: Optional[List[Dict]] = None
     oai_messages: Optional[List[Dict[str, Any]]] = None
     anthropic_messages: Optional[List[Dict[str, Any]]] = None
     actions_diff: Optional[Dict[str, Any]] = None
+    total_cost: Optional[float] = None
+    total_user_cost: Optional[float] = None
 
 
 class EnvInfo(BaseModel):
@@ -84,6 +86,8 @@ class EnvRunResult(BaseModel):
     node_turns: Optional[List[Dict]] = None
     oai_messages: Optional[List[Dict[str, Any]]] = None
     anthropic_messages: Optional[List[Dict[str, Any]]] = None
+    total_cost: Optional[float] = None
+    total_user_cost: Optional[float] = None
 
 
 class RunConfig(BaseModel):
@@ -107,9 +111,10 @@ class RunConfig(BaseModel):
     user_strategy: str = "llm"
     few_shot_displays_path: Optional[str] = None
 
-
     @model_validator(mode="after")
     def validate_agent(self):
         if not ((self.agent_strategy is None) ^ (self.custom_agent is None)):
-            raise ValueError("Exactly one of agent_strategy or custom_agent must be provided")
+            raise ValueError(
+                "Exactly one of agent_strategy or custom_agent must be provided"
+            )
         return self

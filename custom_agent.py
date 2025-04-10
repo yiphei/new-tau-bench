@@ -15,6 +15,9 @@ from cashier.model.model_completion import Model
 from cashier.model.types import MessageFormat, ModelAPI
 from tau_benchmark.schema.request_graph_schema import AIRLINE_REQUEST_GRAPH
 from tau_benchmark.util import BLACKLISTED_TOOLS, TURN_TYPES
+from pydantic_evals.otel._context_in_memory_span_exporter import context_subtree
+import json
+from cashier.model.cost import compute_token_cost
 
 WRITE_TOOL_NAMES = [
     "update_reservation_baggages",
@@ -55,6 +58,60 @@ TASK_ID_TO_MAX_LENGTH = {
 }
 
 
+def compute_token_attributes_for_agent(llm_spans):
+    total_output_tokens = 0
+    total_input_tokens = 0
+    total_cost = 0
+    for llm_span in llm_spans:
+        response_data = json.loads(llm_span.attributes["response_data"])
+        request_data = json.loads(llm_span.attributes["request_data"])
+        output_tokens = response_data["usage"]["completion_tokens"]
+        input_tokens = response_data["usage"]["prompt_tokens"]
+        total_output_tokens += output_tokens
+        total_input_tokens += input_tokens
+        total_cost += compute_token_cost(
+            request_data["model"], input_tokens, output_tokens
+        )
+
+    return total_output_tokens, total_input_tokens, total_cost
+
+
+def compute_token_attributes_for_user(llm_spans):
+    total_output_tokens = 0
+    total_input_tokens = 0
+    total_cost = 0
+    for llm_span in llm_spans:
+        completion = json.loads(llm_span.attributes["completion"])
+        output_tokens = completion["usage"]["completion_tokens"]
+        input_tokens = completion["usage"]["prompt_tokens"]
+        total_output_tokens += output_tokens
+        total_input_tokens += input_tokens
+        total_cost += compute_token_cost(
+            completion["model"], input_tokens, output_tokens
+        )
+
+    return total_output_tokens, total_input_tokens, total_cost
+
+
+def compute_cost_attributes(tree, parent_span):
+    agent_llm_spans = tree.find({"has_attributes": {"logfire.tags": ("LLM",)}})
+    total_output_tokens, total_input_tokens, total_cost = (
+        compute_token_attributes_for_agent(agent_llm_spans)
+    )
+    parent_span.set_attribute("total_output_tokens", total_output_tokens)
+    parent_span.set_attribute("total_input_tokens", total_input_tokens)
+    parent_span.set_attribute("total_cost", total_cost)
+
+    user_llm_spans = tree.find({"has_attributes": {"logfire.tags": ("CustomerLLM",)}})
+    total_output_tokens, total_input_tokens, total_user_cost = (
+        compute_token_attributes_for_user(user_llm_spans)
+    )
+    parent_span.set_attribute("total_USER_output_tokens", total_output_tokens)
+    parent_span.set_attribute("total_USER_input_tokens", total_input_tokens)
+    parent_span.set_attribute("total_USER_cost", total_user_cost)
+    return total_cost, total_user_cost
+
+
 class CustomToolCallingAgent(ToolCallingAgent):
 
     def build_tool_fn_registry(
@@ -88,7 +145,6 @@ class CustomToolCallingAgent(ToolCallingAgent):
         self, env: Env, task_index: Optional[int] = None, max_num_steps: int = 160
     ) -> SolveResult:
         user_model = env.user.model
-        total_cost = 0.0
         expected_task_actions = env.task.actions
         expected_task_action_names = [action.name for action in expected_task_actions]
         expected_write_task_actions = [
@@ -113,63 +169,66 @@ class CustomToolCallingAgent(ToolCallingAgent):
             ass_model=self.model,
             user_model=user_model,
         ) as span:
-            env_reset_res = env.reset(task_index=task_index)
-            obs = env_reset_res.observation
-            info = env_reset_res.info.model_dump()
+            with context_subtree() as tree:
+                env_reset_res = env.reset(task_index=task_index)
+                obs = env_reset_res.observation
+                info = env_reset_res.info.model_dump()
 
-            max_length = TASK_ID_TO_MAX_LENGTH.get(task_index, max_num_steps)
-            AE = AgentExecutor(
-                False,
-                True,
-                AIRLINE_REQUEST_GRAPH,
-            )
-            AE.graph.benchmark_tool_registry = tool_fn_registry
-            AE.graph.blacklist_tool_names = BLACKLISTED_TOOLS
-
-            AE.add_user_turn(obs)
-            full_message_dicts = AE.TC.model_api_format_to_message_manager[
-                (ModelAPI.OPENAI, MessageFormat.MANY_SYSTEM_LAST_NODE_PROMPT)
-            ].full_message_dicts
-            try:
-                for i in range(max_length):
-                    model_completion = self.get_model_completion(AE)
-                    action = message_to_action(model_completion)
-                    AE.add_assistant_turn(model_completion)
-
-                    need_user_input = AE.need_user_input
-                    env_response = env.step(
-                        action,
-                        can_do_user_step=need_user_input,
-                        can_do_tool_execution=False,
-                    )
-                    reward = env_response.reward
-                    info = {**info, **env_response.info.model_dump()}
-
-                    if need_user_input:
-                        AE.add_user_turn(env_response.observation)
-                    else:
-                        AE.custom_benchmark_check()
-
-                    if env_response.done:
-                        break
-                logfire.info("DONE with reward {reward}", reward=reward)
-                if i == max_length - 1:
-                    logfire.error("Max length reached")
-            except Exception as e:
-                logfire.exception(f"Exception: {e}")
-                raise e
-            finally:
-                write_actions_diff, actions_diff = self.calculate_span_attributes(
-                    span,
-                    expected_task_actions,
-                    expected_write_task_actions,
-                    actual_task_actions,
-                    actual_write_task_actions,
-                    full_message_dicts,
-                    reward,
-                    user_model,
-                    task_index,
+                max_length = TASK_ID_TO_MAX_LENGTH.get(task_index, max_num_steps)
+                AE = AgentExecutor(
+                    False,
+                    True,
+                    AIRLINE_REQUEST_GRAPH,
                 )
+                AE.graph.benchmark_tool_registry = tool_fn_registry
+                AE.graph.blacklist_tool_names = BLACKLISTED_TOOLS
+
+                AE.add_user_turn(obs)
+                full_message_dicts = AE.TC.model_api_format_to_message_manager[
+                    (ModelAPI.OPENAI, MessageFormat.MANY_SYSTEM_LAST_NODE_PROMPT)
+                ].full_message_dicts
+                try:
+                    for i in range(max_length):
+                        model_completion = self.get_model_completion(AE)
+                        action = message_to_action(model_completion)
+                        AE.add_assistant_turn(model_completion)
+
+                        need_user_input = AE.need_user_input
+                        env_response = env.step(
+                            action,
+                            can_do_user_step=need_user_input,
+                            can_do_tool_execution=False,
+                        )
+                        reward = env_response.reward
+                        info = {**info, **env_response.info.model_dump()}
+
+                        if need_user_input:
+                            AE.add_user_turn(env_response.observation)
+                        else:
+                            AE.custom_benchmark_check()
+
+                        if env_response.done:
+                            break
+                    logfire.info("DONE with reward {reward}", reward=reward)
+                    if i == max_length - 1:
+                        logfire.error("Max length reached")
+                except Exception as e:
+                    logfire.exception(f"Exception: {e}")
+                    raise e
+                finally:
+                    write_actions_diff, actions_diff = self.calculate_span_attributes(
+                        span,
+                        expected_task_actions,
+                        expected_write_task_actions,
+                        actual_task_actions,
+                        actual_write_task_actions,
+                        full_message_dicts,
+                        reward,
+                        user_model,
+                        task_index,
+                    )
+
+            total_cost, total_user_cost = compute_cost_attributes(tree, span)
 
         turns = AE.TC.turns
         oai_messages = []
@@ -189,12 +248,13 @@ class CustomToolCallingAgent(ToolCallingAgent):
             messages=AE.TC.model_api_format_to_message_manager[
                 (ModelAPI.OPENAI, MessageFormat.MANY_SYSTEM_LAST_NODE_PROMPT)
             ].conversation_dicts,
-            total_cost=total_cost,
             raw_messages=raw_messages,
             node_turns=[turn_dump(node_turn) for node_turn in AE.TC.turns],
             anthropic_messages=anthropic_messages,
             oai_messages=oai_messages,
             actions_diff=actions_diff,
+            total_cost=total_cost,
+            total_user_cost=total_user_cost,
         )
 
     def calculate_span_attributes(
