@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, model_validator
 from typing import List, Dict, Any, Optional, Union, Type, TYPE_CHECKING
+
 if TYPE_CHECKING:
     from tau_bench.agents.tool_calling_agent import ToolCallingAgent
 
@@ -110,9 +111,10 @@ class RunConfig(BaseModel):
     user_strategy: str = "llm"
     few_shot_displays_path: Optional[str] = None
 
-
     @model_validator(mode="after")
     def validate_agent(self):
         if not ((self.agent_strategy is None) ^ (self.custom_agent is None)):
-            raise ValueError("Exactly one of agent_strategy or custom_agent must be provided")
+            raise ValueError(
+                "Exactly one of agent_strategy or custom_agent must be provided"
+            )
         return self

@@ -253,7 +253,7 @@ class CustomToolCallingAgent(ToolCallingAgent):
             anthropic_messages=anthropic_messages,
             oai_messages=oai_messages,
             actions_diff=actions_diff,
-            total_cost = total_cost,
+            total_cost=total_cost,
             total_user_cost=total_user_cost,
         )
 
