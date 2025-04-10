@@ -10,6 +10,7 @@ from cashier.model.model_client import ModelClient
 from cashier.model.model_util import CustomJSONEncoder
 from cashier.model.types import get_default_model_provider_for_model_name
 from custom_agent import CustomToolCallingAgent
+from pydantic_evals.otel._context_in_memory_span_exporter import context_subtree
 
 RunConfig.model_rebuild()
 import dotenv
@@ -51,11 +52,22 @@ def run_with_defaults(args) -> None:
         num_trials=args.num_trials,
         max_concurrency=args.max_concurrency,
     ) as span:
-        results = run(config, CustomJSONEncoder)
+        with context_subtree() as tree:
+            results = run(config, CustomJSONEncoder)
 
-        rewards = sum([r.reward for r in results])
-        span.set_attribute("total_completed_count", len(results))
-        span.set_attribute("total_successful_count", rewards)
+            rewards = sum([r.reward for r in results])
+            span.set_attribute("total_completed_count", len(results))
+            span.set_attribute("total_successful_count", rewards)
+
+        process_spans = tree.find({"has_attributes": {"logfire.tags": ("Process",)}})
+        total_cost = 0
+        total_user_cost = 0
+        for process_span in process_spans:
+            total_cost += process_span.attributes["total_cost"]
+            total_user_cost += process_span.attributes["total_USER_cost"]
+
+        span.set_attribute("total_cost", total_cost)
+        span.set_attribute("total_USER_cost", total_user_cost)
 
 
 if __name__ == "__main__":
