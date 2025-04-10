@@ -174,7 +174,7 @@ class CustomToolCallingAgent(ToolCallingAgent):
                 obs = env_reset_res.observation
                 info = env_reset_res.info.model_dump()
 
-                max_length = 4
+                max_length = TASK_ID_TO_MAX_LENGTH.get(task_index, max_num_steps)
                 AE = AgentExecutor(
                     False,
                     True,
