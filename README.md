@@ -16,8 +16,8 @@ Here are the results between the two test corpi
 
 | Test corpus       | Pass^1 | Pass^2 | Pass^3 | Pass^4 |
 | -------------- | ------ | ------ | ------ | ------ |
-| revised_test      | **0.52**     | **0.38**     | **0.28**     | **0.22**     |
-| test     | 0.37     | 0.28     | 0.25     | 0.22    |
+| revised_test      | **0.52**     | **0.36**     | **0.27**     | **0.22**     |
+| test     | 0.35     | 0.22     | 0.15     | 0.11    |
 
 The command for `revised_test` was
 ```
