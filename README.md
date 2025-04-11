@@ -22,7 +22,7 @@ Some tools had unclear, incorrect, or incomplete descriptions, so they were impr
 
 A new `SortFlights` tool was added. Many test cases required the AI to sort long lists of flights, where AI often committed errors and hallucinated. I don’t believe a model’s native sorting abilities are critical to evaluating its agentic performance, so I decided to introduce a sorting tool. Likewise, I modified the tools `SearchDirectFlight` and `SearchOnestopFlight` to have built-in sorting features.
 
-### Tool business logic
+### Tool API and business logic
 
 The business logic of some tools were either corrected or improved. For instance, the original `UpdateReservationBaggages` tool expected a `payment_id` even when there were zero nonfree baggages and thus no payment was expected. This created ambiguity for what `payment_id` to use. Therefore, `UpdateReservationBaggages` was updated to expect a null `payment_id` when there are zero nonfree baggages.
 
