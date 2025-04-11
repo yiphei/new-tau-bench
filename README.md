@@ -12,18 +12,18 @@ These improvements stem from my experimentations with the airline environment, s
 
 Most of the test cases in the original tau-bench were AI generated. While this enabled automatic test generation at scale, it resulted in many suboptimal test definitions. Since the benchmark relies on AI-simulated users to converse with the agents, it becomes imperative to have clear and assertive instructions & definitions for the agents to minimize hallucinations. To this end, a new manually curated and verified test corpus `revised_test` was created for the airline environment. `revised_test` directly borrows and improves on a subset of the original `test`. 
 
-Here are the results between the two test corpi
+Here are the test results between the two test corpi
 
 | Test corpus       | Pass^1 | Pass^2 | Pass^3 | Pass^4 |
 | -------------- | ------ | ------ | ------ | ------ |
 | revised_test      | **0.52**     | **0.36**     | **0.27**     | **0.22**     |
 | test     | 0.35     | 0.22     | 0.15     | 0.11    |
 
-The command for `revised_test` was
+The command used for `revised_test` was
 ```
 python run.py --agent-strategy tool-calling --env airline --model openrouter/anthropic/claude-3.7-sonnet --model-provider openrouter --user-model openrouter/anthropic/claude-3.7-sonnet --user-model-provider openrouter --user-strategy llm --max-concurrency 33 --task-split revised_test --num-trials 4
 ```
-and the command for `test` was
+and the command used for `test` was
 ```
 python run.py --agent-strategy tool-calling --env airline --model openrouter/anthropic/claude-3.7-sonnet --model-provider openrouter --user-model openrouter/anthropic/claude-3.7-sonnet --user-model-provider openrouter --user-strategy llm --max-concurrency 33 --task-split test --num-trials 4 --task-ids 0 3 6 11 20 23 32 1 10 25 4 12 14 15 17 21 22 41 42 43 47 48 49 19 18 26 27
 ```
