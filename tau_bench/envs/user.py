@@ -44,7 +44,7 @@ class LLMUserSimulationEnv(BaseUserSimulationEnv):
 
     def _generate_message(self, messages: List[Dict[str, Any]]) -> str:
         """Sometimes, the model inexplicably returns an empty response, so we retry"""
-        
+
         message_content = ""
         retries = 3
         copied_messages = messages.copy()
