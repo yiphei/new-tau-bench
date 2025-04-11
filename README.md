@@ -24,7 +24,7 @@ A new `SortFlights` tool was added. Many test cases required the AI to sort long
 
 ### Tool business logic
 
-The business logic of some tools were either fixed or improved. For instance, the original `UpdateReservationBaggages` tool expects a `payment_id` even when there are zero nonfree baggages and thus no payment is expected. This creates ambiguity for what `payment_id` to use. Therefore, `UpdateReservationBaggages` to expect a null `payment_id` when there are zero nonfree baggages.
+The business logic of some tools were either corrected or improved. For instance, the original `UpdateReservationBaggages` tool expected a `payment_id` even when there were zero nonfree baggages and thus no payment was expected. This created ambiguity for what `payment_id` to use. Therefore, `UpdateReservationBaggages` was updated to expect a null `payment_id` when there are zero nonfree baggages.
 
 ## Prompts
 
