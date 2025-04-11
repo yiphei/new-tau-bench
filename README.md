@@ -1,6 +1,6 @@
-# new-**τ-bench**
+# neo-**τ-bench**
 
-new-tau-bench is an fork of [tau-bench](https://github.com/sierra-research/tau-bench) that improves on the original benchmark in the following areas:
+neo-τ-bench is an fork of [tau-bench](https://github.com/sierra-research/tau-bench) that improves on the original benchmark in the following areas:
 
 - testing corpus
 - tools
@@ -10,7 +10,7 @@ These improvements stem from my experimentations with the airline environment, s
 
 ## Testing corpus
 
-Most of the test cases in the original tau-bench were AI generated. While this enabled automatic test generation at scale, it resulted in many suboptimal test definitions. Since the benchmark relies on AI-simulated users, it becomes imperative to have clear and assertive instructions & definitions for the agents to minimize hallucinations. To this end, a new manually curated and verified test corpus `revised_test` was created for the airline environment. `revised_test` directly borrows and improves on a subset of the original `test`. More information can be found at https://github.com/yiphei/new-tau-bench/wiki/revised_tasks_test.py-changelog. 
+Most of the test cases in the original tau-bench were AI generated. While this enabled automatic test generation at scale, it resulted in many suboptimal test definitions. Since the benchmark relies on AI-simulated users to converse with the agents, it becomes imperative to have clear and assertive instructions & definitions for the agents to minimize hallucinations. To this end, a new manually curated and verified test corpus `revised_test` was created for the airline environment. `revised_test` directly borrows and improves on a subset of the original `test`. More tests will be converted into `revised_test` over time. You can find more information at https://github.com/yiphei/new-tau-bench/wiki/revised_tasks_test.py-changelog. 
 
 ## Tools
 
