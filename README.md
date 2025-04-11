@@ -34,4 +34,4 @@ One of the biggest problems I encoureted with the AI-simulated user was prematur
 
 ### Policy (wiki.md)
 
-The change flights and cabin sections of the policy were confusing because it first states that basic economy flights cannot be modified, but it then separately states that basic economy flights can upgrade cabin. Once upgraded, they could be changed like any other flight. Since cabin changes are instrinsically part of flight changes (both conceptually and at the tool API level), the two sections were merged into one and the overall exposition was improved for clarity.
+The change flights and cabin sections of the policy are confusing because it first states that basic economy flights cannot be modified, but it then separately states that basic economy flights can upgrade cabin. Once upgraded, they could be changed like any other flight. Since cabin changes are instrinsically part of flight changes (both conceptually and at the tool API level), the two sections were merged into one and the overall exposition was improved for clarity.
