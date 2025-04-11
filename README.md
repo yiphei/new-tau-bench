@@ -4,7 +4,7 @@ new-tau-bench is an fork of tau-bench that improves on the original benchmark in
 
 - testing corpus
 - tools
-- user system prompts
+- system prompts
 
 These improvements stem from my experimentations with the airline environment, so some changes only apply to or are optimized for the (more challenging) airline environment. Furthermore, most of the implementation is optimized for legibility and comprehension for those already familiar with the original tau-bench, not for clean abstraction and efficiency. The reason for this is to facilitate the appreciation for the merits of the changes without prescribing specific solutions. The ultimate hope is that these changes, or a version of them, are adopted by the original benchmark.
 
@@ -26,7 +26,7 @@ A new `SortFlights` tool was added. Many test cases required the AI to sort long
 
 The business logic of some tools were either corrected or improved. For instance, the original `UpdateReservationBaggages` tool expected a `payment_id` even when there were zero nonfree baggages and thus no payment was expected. This created ambiguity for what `payment_id` to use. Therefore, `UpdateReservationBaggages` was updated to expect a null `payment_id` when there are zero nonfree baggages.
 
-## Prompts
+## System prompts
 
 ### LLM user strategy system prompt
 
