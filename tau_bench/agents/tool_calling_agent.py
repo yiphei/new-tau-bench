@@ -87,8 +87,8 @@ def message_to_action(
         tool_call = message["tool_calls"][0]
 
         # openrouter formats empty tool call arguments as '', which is not valid JSON
-        if tool_call["function"]["arguments"] == '':
-            tool_call["function"]["arguments"] = '{}'
+        if tool_call["function"]["arguments"] == "":
+            tool_call["function"]["arguments"] = "{}"
         return Action(
             name=tool_call["function"]["name"],
             kwargs=json.loads(tool_call["function"]["arguments"]),
