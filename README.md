@@ -32,6 +32,6 @@ The business logic of some tools were either fixed or improved. For instance, th
 
 The biggest problem with the AI-simulated user was premature conversation termination via `'###STOP###'`. Therefore, the system prompt was improved to reduce these incidents. Better formatting was also applied
 
-## Policy (wiki.md)
+### Policy (wiki.md)
 
 The change flights and cabin sections of the policy were confusing because it first states that basic economy flights cannot be modified, but it then separately states that basic economy flights can upgrade cabin. Once upgraded, they could be changed like any other flight. Since cabin changes are part of flight changes, the two sections were merged into one and the overall exposition was improved.
