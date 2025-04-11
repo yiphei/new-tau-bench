@@ -2,13 +2,13 @@
 
 This new tau-bench improves on the original benchmark in the following areas:
 
-- test corpus
+- testing corpus
 - tools
 - system prompts
 
 These improvements stem from my experimentations with the airline environment, so some changes only apply to or are optimized for the (more challenging) airline environment. Furthermore, most of the implementation is optimized for legibility and comprehension for those already familiar with the original tau-bench, not for clean abstraction and efficiency. The reason for this is to facilitate the appreciation for the merits of the changes without prescribing specific solutions. The ultimate hope is that these changes, or a version of these, are adopted by the original benchmark.
 
-### Revised test
+## Testing corpus
 
 Most of the test cases in the original tau-bench were AI generated. While this allowed test generation at scale, it resulted in some suboptimal test definitions. Since the benchmark relies on AI-simulated users, it becomes imperative to have clear and assertive instructions for the agents. To this end, a new manually curated and verified test corpus `revised_test` was created for the airline environment. `revised_test` directly borrows and improves on a subset of the original `test`. More information can be found at https://github.com/yiphei/new-tau-bench/wiki/revised_tasks_test.py-changelog. 
 
