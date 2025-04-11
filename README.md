@@ -1,6 +1,6 @@
 # new-**τ-bench**
 
-new-tau-bench is an fork of tau-bench that improves on the original benchmark in the following areas:
+new-tau-bench is an fork of [tau-bench](https://github.com/sierra-research/tau-bench) that improves on the original benchmark in the following areas:
 
 - testing corpus
 - tools
